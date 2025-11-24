@@ -2,7 +2,7 @@
 // CONFIG
 // ===============================
 const BACKEND_URL =
-  "https://https://voice-agent-ui-iota.vercel.app/api/session/api/session";
+  "https://voice-agent-ui-iota.vercel.app/api/session/api/session";
 
 // ===============================
 // UI ELEMENTS (MATCHING YOUR HTML)
