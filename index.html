@@ -1,193 +1,37 @@
-// ===============================
-// CONFIG
-// ===============================
-const BACKEND_URL =
-  "https://voice-agent-backend-hliyk-1dt12k5cn-fergusinnsdesigns-projects.vercel.app/api/session";
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Voice Agent</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-// ===============================
-// UI ELEMENTS (MATCHING YOUR HTML)
-// ===============================
-const talkButton = document.getElementById("talkButton");
-const statusText = document.getElementById("status");
-const debugOutput = document.getElementById("logOutput");
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <div class="card">
+        <h1>Talk to your agent</h1>
+        <p class="sub">
+          This is a simple web app that talks to your Vercel backend,
+          gets an OpenAI realtime <code>ephemeral_key</code>, and will soon
+          start a voice conversation.
+        </p>
 
-// Logging helper
-function log(message, obj = null) {
-  const ts = new Date().toLocaleTimeString();
-  if (obj) {
-    debugOutput.textContent += `[${ts}] ${message} ${JSON.stringify(
-      obj,
-      null,
-      2
-    )}\n\n`;
-  } else {
-    debugOutput.textContent += `[${ts}] ${message}\n`;
-  }
-  debugOutput.scrollTop = debugOutput.scrollHeight;
-}
+        <!-- FIXED: THIS MUST MATCH JS -->
+        <button id="talkButton">Talk to agent</button>
 
-// ===============================
-// AUDIO SETUP
-// ===============================
-let audioContext;
-let micStream;
-let processor;
-let sourceNode;
-let websocket;
+        <!-- FIXED -->
+        <p id="status" class="status">Idle</p>
 
-function floatTo16BitPCM(float32Array) {
-  const buffer = new ArrayBuffer(float32Array.length * 2);
-  const view = new DataView(buffer);
-  let offset = 0;
-  for (let i = 0; i < float32Array.length; i++, offset += 2) {
-    const s = Math.max(-1, Math.min(1, float32Array[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-  }
-  return buffer;
-}
+        <div class="log">
+          <h2>Debug output</h2>
 
-// ===============================
-// MAIN LOGIC
-// ===============================
-async function startAgent() {
-  log("Requesting ephemeral key from backend...");
-  statusText.textContent = "Requesting session from backend...";
+          <!-- FIXED -->
+          <pre id="logOutput">// ephemeral key + messages will show here</pre>
+        </div>
+      </div>
+    </main>
 
-  // STEP 1 — Fetch ephemeral realtime key
-  const res = await fetch(BACKEND_URL, { method: "POST" });
-  const data = await res.json();
-
-  if (!data.ephemeral_key) {
-    log("Backend error:", data);
-    statusText.textContent = "Backend error";
-    return;
-  }
-
-  log("Got ephemeral key", data);
-  statusText.textContent = "Connecting to OpenAI Realtime...";
-
-  websocket = new WebSocket(
-    "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
-    { headers: { Authorization: `Bearer ${data.ephemeral_key}` } }
-  );
-
-  websocket.binaryType = "arraybuffer";
-
-  websocket.onopen = () => {
-    log("Connected to OpenAI realtime!");
-    statusText.textContent = "Connected — start talking!";
-    beginMicrophoneStreaming();
-  };
-
-  websocket.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    log("AI event received", msg);
-
-    if (msg.type === "response.audio.delta") {
-      playAudioChunk(msg.delta);
-    }
-  };
-
-  websocket.onerror = (err) => {
-    log("WebSocket error", err);
-    statusText.textContent = "WebSocket error";
-  };
-
-  websocket.onclose = () => {
-    log("WebSocket closed");
-    statusText.textContent = "Disconnected";
-    stopMicrophone();
-  };
-}
-
-// ===============================
-// MICROPHONE STREAM → AI
-// ===============================
-async function beginMicrophoneStreaming() {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  sourceNode = audioContext.createMediaStreamSource(micStream);
-
-  processor = audioContext.createScriptProcessor(2048, 1, 1);
-  sourceNode.connect(processor);
-  processor.connect(audioContext.destination);
-
-  processor.onaudioprocess = (event) => {
-    const float32 = event.inputBuffer.getChannelData(0);
-    const pcm16 = floatTo16BitPCM(float32);
-
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      websocket.send(
-        JSON.stringify({
-          type: "input_audio_buffer.append",
-          audio: Array.from(new Int16Array(pcm16)),
-        })
-      );
-    }
-  };
-
-  setInterval(() => {
-    if (websocket) {
-      websocket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-      websocket.send(JSON.stringify({ type: "response.create" }));
-    }
-  }, 1400);
-
-  log("Microphone streaming started.");
-}
-
-// ===============================
-// PLAY AI AUDIO OUT
-// ===============================
-let playbackQueue = [];
-let playing = false;
-
-function playAudioChunk(base64Audio) {
-  const byteArray = Uint8Array.from(atob(base64Audio), (c) =>
-    c.charCodeAt(0)
-  ).buffer;
-  playbackQueue.push(byteArray);
-
-  if (!playing) playNext();
-}
-
-function playNext() {
-  if (playbackQueue.length === 0) {
-    playing = false;
-    return;
-  }
-
-  playing = true;
-
-  const chunk = playbackQueue.shift();
-  audioContext.decodeAudioData(chunk.slice(0)).then((buffer) => {
-    const playNode = audioContext.createBufferSource();
-    playNode.buffer = buffer;
-    playNode.connect(audioContext.destination);
-    playNode.start();
-    playNode.onended = playNext;
-  });
-}
-
-// ===============================
-// STOP MICROPHONE
-// ===============================
-function stopMicrophone() {
-  if (processor) processor.disconnect();
-  if (sourceNode) sourceNode.disconnect();
-  if (micStream) micStream.getTracks().forEach((t) => t.stop());
-  log("Microphone stopped.");
-}
-
-// ===============================
-// UI BUTTON
-// ===============================
-talkButton.addEventListener("click", () => {
-  if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-    startAgent();
-    talkButton.textContent = "Stop";
-  } else {
-    websocket.close();
-    talkButton.textContent = "Talk to agent";
-  }
-});
+    <script src="script.js"></script>
+  </body>
+</html>
