@@ -1,0 +1,108 @@
+/* Reset-ish */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+/* Layout */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 24px;
+  padding: 24px 24px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.sub {
+  font-size: 14px;
+  opacity: 0.75;
+  line-height: 1.4;
+  margin-bottom: 24px;
+}
+
+/* Button */
+button#talkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  background: #38bdf8;
+  color: #0f172a;
+  transition: transform 0.08s ease, box-shadow 0.1s ease,
+    background 0.12s ease;
+  box-shadow: 0 12px 30px rgba(56, 189, 248, 0.45);
+}
+
+button#talkButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(56, 189, 248, 0.55);
+}
+
+button#talkButton:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.5);
+}
+
+/* Status + log */
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.log {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.log h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+#logOutput {
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+  background: #020617;
+  border-radius: 10px;
+  padding: 10px;
+  color: #a5b4fc;
+  line-height: 1.4;
+}
