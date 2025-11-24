@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
       return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
     }
@@ -18,16 +19,18 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await response.json();
-    const eph = data?.client_secret?.value;
+    const json = await response.json();
+    const key = json?.client_secret?.value;
 
-    if (!eph) {
-      return res.status(500).json({ error: "OpenAI response missing key", data });
+    if (!key) {
+      return res.status(500).json({
+        error: "No ephemeral key returned from OpenAI",
+        response: json
+      });
     }
 
-    res.status(200).json({ ephemeral_key: eph });
-
+    return res.status(200).json({ ephemeral_key: key });
   } catch (err) {
-    res.status(500).json({ error: "Server error", details: String(err) });
+    return res.status(500).json({ error: "Server error", detail: String(err) });
   }
 }
