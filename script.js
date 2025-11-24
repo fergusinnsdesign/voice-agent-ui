@@ -1,20 +1,25 @@
 // ===============================
 // CONFIG
 // ===============================
-const BACKEND_URL = "https://voice-agent-ui-iota.vercel.app/api/session";
+const BACKEND_URL =
+  "https://voice-agent-backend-hliyk-1dt12k5cn-fergusinnsdesigns-projects.vercel.app/api/session";
 
 // ===============================
-// UI ELEMENTS
+// UI ELEMENTS (MATCHING YOUR HTML)
 // ===============================
-const talkButton = document.getElementById("talk-button");
+const talkButton = document.getElementById("talkButton");
 const statusText = document.getElementById("status");
-const debugOutput = document.getElementById("debug");
+const debugOutput = document.getElementById("logOutput");
 
 // Logging helper
 function log(message, obj = null) {
   const ts = new Date().toLocaleTimeString();
   if (obj) {
-    debugOutput.textContent += `[${ts}] ${message} ${JSON.stringify(obj, null, 2)}\n\n`;
+    debugOutput.textContent += `[${ts}] ${message} ${JSON.stringify(
+      obj,
+      null,
+      2
+    )}\n\n`;
   } else {
     debugOutput.textContent += `[${ts}] ${message}\n`;
   }
@@ -28,10 +33,8 @@ let audioContext;
 let micStream;
 let processor;
 let sourceNode;
-let speakerNode;
 let websocket;
 
-// Converts Float32 → Int16 (OpenAI expects PCM16)
 function floatTo16BitPCM(float32Array) {
   const buffer = new ArrayBuffer(float32Array.length * 2);
   const view = new DataView(buffer);
@@ -48,10 +51,8 @@ function floatTo16BitPCM(float32Array) {
 // ===============================
 async function startAgent() {
   log("Requesting ephemeral key from backend...");
-
   statusText.textContent = "Requesting session from backend...";
 
-  // STEP 1 — Fetch ephemeral realtime key
   const res = await fetch(BACKEND_URL, { method: "POST" });
   const data = await res.json();
 
@@ -64,15 +65,9 @@ async function startAgent() {
   log("Got ephemeral key", data);
   statusText.textContent = "Connecting to OpenAI Realtime...";
 
-  // STEP 2 — Create websocket connection
   websocket = new WebSocket(
     "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
-    {
-      headers: {
-        "Authorization": `Bearer ${data.ephemeral_key}`,
-        "OpenAI-Beta": "realtime=v1"
-      }
-    }
+    { headers: { Authorization: `Bearer ${data.ephemeral_key}` } }
   );
 
   websocket.binaryType = "arraybuffer";
@@ -80,8 +75,6 @@ async function startAgent() {
   websocket.onopen = () => {
     log("Connected to OpenAI realtime!");
     statusText.textContent = "Connected — start talking!";
-
-    // Start local mic → WS stream
     beginMicrophoneStreaming();
   };
 
@@ -89,7 +82,6 @@ async function startAgent() {
     const msg = JSON.parse(event.data);
     log("AI event received", msg);
 
-    // Handle audio output events
     if (msg.type === "response.audio.delta") {
       playAudioChunk(msg.delta);
     }
@@ -112,7 +104,6 @@ async function startAgent() {
 // ===============================
 async function beginMicrophoneStreaming() {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
   micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   sourceNode = audioContext.createMediaStreamSource(micStream);
 
@@ -128,13 +119,12 @@ async function beginMicrophoneStreaming() {
       websocket.send(
         JSON.stringify({
           type: "input_audio_buffer.append",
-          audio: Array.from(new Int16Array(pcm16))
+          audio: Array.from(new Int16Array(pcm16)),
         })
       );
     }
   };
 
-  // Signal end of input chunk
   setInterval(() => {
     if (websocket) {
       websocket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
@@ -152,7 +142,9 @@ let playbackQueue = [];
 let playing = false;
 
 function playAudioChunk(base64Audio) {
-  const byteArray = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0)).buffer;
+  const byteArray = Uint8Array.from(atob(base64Audio), (c) =>
+    c.charCodeAt(0)
+  ).buffer;
   playbackQueue.push(byteArray);
 
   if (!playing) playNext();
@@ -172,7 +164,6 @@ function playNext() {
     playNode.buffer = buffer;
     playNode.connect(audioContext.destination);
     playNode.start();
-
     playNode.onended = playNext;
   });
 }
@@ -183,9 +174,7 @@ function playNext() {
 function stopMicrophone() {
   if (processor) processor.disconnect();
   if (sourceNode) sourceNode.disconnect();
-  if (micStream) {
-    micStream.getTracks().forEach((t) => t.stop());
-  }
+  if (micStream) micStream.getTracks().forEach((t) => t.stop());
   log("Microphone stopped.");
 }
 
