@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Voice Agent</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <div class="card">
+        <h1>Talk to your agent</h1>
+        <p class="sub">
+          This is a simple web app that talks to your Vercel backend,
+          gets an OpenAI realtime <code>ephemeral_key</code>, and will soon
+          start a voice conversation.
+        </p>
+
+        <button id="talkButton">Talk to agent</button>
+
+        <p id="status" class="status">Idle</p>
+
+        <div class="log">
+          <h2>Debug output</h2>
+          <pre id="logOutput">// ephemeral key + messages will show here</pre>
+        </div>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
