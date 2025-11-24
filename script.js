@@ -1,6 +1,6 @@
 // === CONFIG: your backend URL that returns { ephemeral_key } ===
 const BACKEND_URL =
-  "https://express-js-on-vercel-seven-smoky.vercel.app/api/session";
+  "https://voice-agent-ui-iota.vercel.app/api/session";
 
 const talkButton = document.getElementById("talkButton");
 const statusEl = document.getElementById("status");
